@@ -1,7 +1,7 @@
-// Function to fetch weather data from Weatherstack API
+// Function to fetch weather data from OpenWeatherMap API
 async function getWeatherData(location) {
-  const apiKey = 'aff4316db6b7075cba8f78d1d2e1a165'; // Your Weatherstack API key
-  const apiUrl = `http://api.weatherstack.com/current?access_key=${apiKey}&query=${location}`;
+  const apiKey = '3e64bb558c78b52d3cfbdcb7306f2e73'; // Replace 'YOUR_API_KEY' with your OpenWeatherMap API key
+  const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=metric`;
 
   try {
     const response = await fetch(apiUrl);
@@ -10,80 +10,43 @@ async function getWeatherData(location) {
     if (response.ok) {
       return data;
     } else {
-      throw new Error(data.error.info);
+      throw new Error(data.message);
     }
   } catch (error) {
     throw new Error(`Error fetching weather data: ${error.message}`);
   }
 }
-// Function to display weather information
-function showWeatherInfo(weatherData) {
-  const weatherInfoElement = document.getElementById('weatherInfo');
-  weatherInfoElement.innerHTML = `
-    <h2>${weatherData.location.name}</h2>
-    <p>Temperature: ${weatherData.current.temperature}°C</p>
-    <p>Weather: ${weatherData.current.weather_descriptions[0]}</p>
-    <p>Wind Speed: ${weatherData.current.wind_speed} km/h</p>
-    <p>Humidity: ${weatherData.current.humidity}%</p>
-    <p>Visibility: ${weatherData.current.visibility} km</p>
-    <p>Sunrise: ${weatherData.current.sunrise}</p>
-    <p>Sunset: ${weatherData.current.sunset}</p>
-  `;
-
-  const weatherAnimationElement = document.getElementById('weatherAnimation');
-  weatherAnimationElement.className = '';
-
-  const currentDateTime = new Date();
-  const sunriseTime = new Date(weatherData.current.sunrise);
-  const sunsetTime = new Date(weatherData.current.sunset);
-
-  if (currentDateTime >= sunriseTime && currentDateTime < sunsetTime) {
-    // Daytime
-    weatherAnimationElement.classList.add('day');
-  } else {
-    // Nighttime
-    weatherAnimationElement.classList.add('night');
-  }
-
-  if (weatherData.current.weather_code === 113) {
-    // Clear Sky
-    weatherAnimationElement.classList.add('clear-sky');
-  } else if (weatherData.current.weather_code === 119 || weatherData.current.weather_code === 122) {
-    // Cloudy
-    weatherAnimationElement.classList.add('cloudy');
-  } else if (weatherData.current.weather_code === 353 || weatherData.current.weather_code === 356) {
-    // Light rain
-    weatherAnimationElement.classList.add('rain');
-  } else {
-    // Other conditions
-    weatherAnimationElement.classList.add('default');
-  }
-}
-
 
 // Function to display weather information
 function showWeatherInfo(weatherData) {
   const weatherInfoElement = document.getElementById('weatherInfo');
   weatherInfoElement.innerHTML = `
-    <h2 style="text-align: center;">${weatherData.location.name}</h2>
-    <p stlye="font-size: 20px;">Temperature: ${weatherData.current.temperature}°C</p>
-    <p>Weather: ${weatherData.current.weather_descriptions[0]}</p>
-    <p>Wind Speed: ${weatherData.current.wind_speed} km/h</p>
-    <p>Humidity: ${weatherData.current.humidity}%</p>
-    <p>Visibility: ${weatherData.current.visibility} km</p>
+    <h2 style="text-align: center;">${weatherData.name}</h2>
+    <p style="font-size: 20px;">Temperature: ${weatherData.main.temp}°C</p>
+    <p>Weather: ${weatherData.weather[0].description}</p>
+    <p>Wind Speed: ${weatherData.wind.speed} km/h</p>
+    <p>Humidity: ${weatherData.main.humidity}%</p>
+    <p>Visibility: ${weatherData.visibility / 1000} km</p>
   `;
 
   const weatherAnimationElement = document.getElementById('weatherAnimation');
   weatherAnimationElement.className = '';
 
-  if (weatherData.current.weather_code === 113) {
+  if (weatherData.weather[0].main === 'Clear') {
     // Clear Sky
     weatherAnimationElement.classList.add('clear-sky');
-  } else if (weatherData.current.weather_code === 119 || weatherData.current.weather_code === 122) {
+  } else if (
+    weatherData.weather[0].main === 'Clouds' ||
+    weatherData.weather[0].main === 'Mist' ||
+    weatherData.weather[0].main === 'Haze'
+  ) {
     // Cloudy
     weatherAnimationElement.classList.add('cloudy');
-  } else if (weatherData.current.weather_code === 353 || weatherData.current.weather_code === 356) {
-    // Light rain
+  } else if (
+    weatherData.weather[0].main === 'Rain' ||
+    weatherData.weather[0].main === 'Drizzle'
+  ) {
+    // Rain
     weatherAnimationElement.classList.add('rain');
   } else {
     // Other conditions
@@ -95,9 +58,8 @@ function showWeatherInfo(weatherData) {
 function handleGeolocationSuccess(position) {
   const latitude = position.coords.latitude;
   const longitude = position.coords.longitude;
-  const apiUrl = `http://api.weatherstack.com/current?access_key=aff4316db6b7075cba8f78d1d2e1a165&query=${latitude},${longitude}`;
 
-  getWeatherData(apiUrl)
+  getWeatherData(`${latitude},${longitude}`)
     .then((weatherData) => {
       showWeatherInfo(weatherData);
     })
@@ -138,31 +100,29 @@ document.getElementById('getWeatherBtn').addEventListener('click', () => {
   }
 });
 
-
 // Event listener for the geolocation button
 document.getElementById('geolocationBtn').addEventListener('click', fetchWeatherByGeolocation);
 
 // Autocomplete for location input
-$(function() {
+$(function () {
   const locationInput = document.getElementById('locationInput');
 
   $(locationInput).autocomplete({
-    source: function(request, response) {
-      const apiKey = 'aff4316db6b7075cba8f78d1d2e1a165'; // Your Weatherstack API key
-      const autocompleteUrl = `http://api.weatherstack.com/autocomplete?access_key=${apiKey}&query=${request.term}`;
+    source: function (request, response) {
+      const apiKey = 'YOUR_API_KEY'; // Replace 'YOUR_API_KEY' with your OpenWeatherMap API key
+      const autocompleteUrl = `https://api.openweathermap.org/data/2.5/find?q=${request.term}&appid=${apiKey}`;
 
       $.ajax({
         url: autocompleteUrl,
         method: 'GET',
-        success: function(data) {
-          response(data.results);
-        }
+        success: function (data) {
+          response(data.list.map((item) => item.name));
+        },
       });
     },
-    select: function(event, ui) {
+    select: function (event, ui) {
       locationInput.value = ui.item.name;
       return false;
-    }
+    },
   });
 });
-
